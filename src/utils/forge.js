@@ -8,7 +8,7 @@
 // Forge Events.
 // From https://github.com/Soopyboo32/SoopyV2.
 
-mportClass(net.minecraftforge.common.MinecraftForge) 
+importClass(net.minecraftforge.common.MinecraftForge) 
 importPackage(net.minecraftforge.fml.common.eventhandler)
 importPackage(org.objectweb.asm)
 importClass(java.lang.ClassLoader)
