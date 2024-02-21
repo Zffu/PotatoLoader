@@ -8,6 +8,11 @@
 // The Core File of the Potato Manager's Feature System (WIP).
 // Also used for event handlers
 
+const File = Java.type("java.io.File")
+const URL = Java.type("java.net.URL")
+const Minecraft = Java.type("net.minecraft.client.Minecraft")
+const ClassWrapper = require("./utils/classWrapper")
+
 class Feature {
     constructor() {
         // We directly store the manager in there for easier and faster access.
@@ -56,6 +61,22 @@ class Feature {
     // Functions that can be overrided and gets triggered at feature disabling or enabling.
     onDisable() {}
     onEnable() {}
+
+    loadJavaClass(ctModuleId, classToLoad) {
+        var parentDir = new File("./config/ChatTriggers/modules/" + ctModuleId + "/features/" + this.getId());
+
+        let url = file.toURI().toURL();
+        let urls = java.lang.reflect.Array.newInstance(URL, 1);
+        urls[0] = url;
+
+        let parentClassLoader = Minecraft.class.getClassLoader();
+        let javaClassLoader = new URLClassLoader(urls, parentClassLoader);
+
+        // Class that we need to load
+        let clazz = javaClassLoader.loadClass(classToLoad);
+
+        return new ClassWrapper(clazz);
+    }
 }
 
 module.exports = {
