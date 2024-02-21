@@ -24,6 +24,7 @@ class PotatoLoader {
     constructor(moduleId) {
         this.moduleId = moduleId;
         this.loadedFiles = [];
+        this.prefix = "§8[§6Potato§8] ";
         this.folder = new File("./config/ChatTriggers/modules/" + this.moduleId + "/src/modules")
     }
 
@@ -48,18 +49,18 @@ class PotatoLoader {
                     return modules;
                 }
                 data.id = pathName;
-                let module = loadModule("../modules/" + data.id + "/", data);
+                let module = this.loadModule("../modules/" + data.id + "/", data);
     
                 modules.push(module);
             } catch(e) {
-                ChatLib.chat("§8[§r§aZffu's Addons§r§8] §cCould not load modules! " + e);
+                ChatLib.chat(this.prefix + "§cCould not load modules! " + e);
             }
         }
         return modules;
     }
     loadModule(dir, manifest) {
         if(manifest["name"] == undefined || manifest["description"] == undefined || manifest["id"] == undefined || manifest["load"] == undefined || manifest["load"].length == 0) {
-            ChatLib.chat("§8[§r§aZffu's Addons§r§8] §cCould not load module " + moduleId + ": Missing Manifest Properties")
+            ChatLib.chat(this.prefix + "§cCould not load module " + moduleId + ": Missing Manifest Properties")
             return;
         }
         
@@ -73,7 +74,7 @@ class PotatoLoader {
     
         if(files.length > 0) {
             files.forEach(file => {
-                loadFile(file);
+                this.loadFile(file);
             })
         }
     
