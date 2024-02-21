@@ -28,6 +28,34 @@ class Feature {
         this.zffuEventHandlers = {};
         this.dynamicEvents = new Set();
     }
+    setId(id) {
+        this.id = id;
+    }
+    getId() {
+        return this.id;
+    }
+
+    // Do not override those functions, if you want to do something at disabling or enabling, use the onDisable or onEnable function.
+    disableFeature() {
+        this.onDisable();
+        
+        this.eventHandlers = {};
+        this.customEventHandlers = {};
+        this.enabled = false;
+
+        this.dynamicEvents.clear();
+    }
+
+    enableFeature(parent) {
+        this.manager = parent;
+        this.enabled = true;
+
+        this.onEnable();
+    }
+
+    // Functions that can be overrided and gets triggered at feature disabling or enabling.
+    onDisable() {}
+    onEnable() {}
 }
 
 module.exports = {
