@@ -5,9 +5,10 @@
 //| |    | |__| | | |/ ____ \| | | |__| | | |___| |__| / ____ \| |__| | |____| | \ \ 
 //|_|     \____/  |_/_/    \_\_|  \____/  |______\____/_/    \_\_____/|______|_|  \_\                                                                          
 // By Zffu - https://github.com/PotatoLoader
-// The Core File of the Potato Manager's Module System (WIP).
+// The Core File of the Potato Manager's Feature System (WIP).
+// Also used for event handlers
 
-class Module {
+class Feature {
     constructor(display_name, id, description, files) {
         this.display_name = display_name;
         this.id = id;
@@ -17,5 +18,5 @@ class Module {
 }
 
 module.exports = {
-    Module
+    Feature
 }

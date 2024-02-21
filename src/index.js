@@ -5,7 +5,7 @@
 //| |    | |__| | | |/ ____ \| | | |__| | | |___| |__| / ____ \| |__| | |____| | \ \ 
 //|_|     \____/  |_/_/    \_\_|  \____/  |______\____/_/    \_\_____/|______|_|  \_\                                                                          
 // By Zffu - https://github.com/PotatoLoader
-// The Core File of the Potato Manager's Module Loading System.
+// The Core File of the Potato Manager's Feature Loading System.
 
 // Import stuff to dynamically load the files trough chattriggers.
 const JSLoader = Java.type("com.chattriggers.ctjs.engine.langs.js.JSLoader")
@@ -15,7 +15,7 @@ const StrongCachingModuleScriptProviderClass = Java.type("org.mozilla.javascript
 let StrongCachingModuleScriptProvider = new StrongCachingModuleScriptProviderClass(UrlModuleSourceProviderInstance)
 let CTRequire = new JSLoader.CTRequire(StrongCachingModuleScriptProvider)
 const File = Java.type("java.io.File")
-import {Module} from "./module"
+import {Feature} from "./feature"
 
 
 
@@ -25,7 +25,7 @@ class PotatoLoader {
         this.moduleId = moduleId;
         this.loadedFiles = [];
         this.prefix = "§8[§6Potato§8] ";
-        this.folder = new File("./config/ChatTriggers/modules/" + this.moduleId + "/src/modules")
+        this.folder = new File("./config/ChatTriggers/modules/" + this.moduleId + "/src/features")
     }
 
     loadFile(path) {
@@ -35,8 +35,8 @@ class PotatoLoader {
         return CTRequire(path);
     }
 
-    loadModules() {
-        let modules = [];
+    loadFeatures() {
+        let features = [];
         let dirs = this.folder.list();
      
         for(let i = 0; i < dirs.length; i++) {
@@ -44,23 +44,23 @@ class PotatoLoader {
             if(pathName.includes(".")) return;
 
             try {
-                let data = JSON.parse(FileLib.read(this.moduleId + "/src/modules/" + pathName + "/", "manifest.json"));
+                let data = JSON.parse(FileLib.read(this.moduleId + "/src/features/" + pathName + "/", "manifest.json"));
                 if(data == null) {
-                    return modules;
+                    return feature;
                 }
                 data.id = pathName;
-                let module = this.loadModule("../modules/" + data.id + "/", data);
+                let feature = this.loadFeature("../features/" + data.id + "/", data);
     
-                modules.push(module);
+                features.push(feature);
             } catch(e) {
-                ChatLib.chat(this.prefix + "§cCould not load modules! " + e);
+                ChatLib.chat(this.prefix + "§cCould not load features! " + e);
             }
         }
-        return modules;
+        return features;
     }
-    loadModule(dir, manifest) {
+    loadFeature(dir, manifest) {
         if(manifest["name"] == undefined || manifest["description"] == undefined || manifest["id"] == undefined || manifest["load"] == undefined || manifest["load"].length == 0) {
-            ChatLib.chat(this.prefix + "§cCould not load module " + moduleId + ": Missing Manifest Properties")
+            ChatLib.chat(this.prefix + "§cCould not load feature " + moduleId + ": Missing Manifest Properties")
             return;
         }
         
@@ -70,7 +70,7 @@ class PotatoLoader {
             files.push(dir + file);
         })
     
-        var module = new Module(manifest["name"], manifest["id"], manifest["description"], files);
+        var feature = new Feature(manifest["name"], manifest["id"], manifest["description"], files);
     
         if(files.length > 0) {
             files.forEach(file => {
