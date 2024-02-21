@@ -9,11 +9,24 @@
 // Also used for event handlers
 
 class Feature {
-    constructor(display_name, id, description, files) {
+    constructor() {
+        // We directly store the manager in there for easier and faster access.
+        this.manager = undefined;
+
+        // Internal Properties
+        this.id = undefined;
+        this.enabled = false;
+
+        // Display Properties
         this.display_name = display_name;
-        this.id = id;
         this.description = description;
-        this.files = files;
+        
+        // Event Handling Properties
+        this.eventHandlers = {};
+        this.customEventHandlers = {};
+        this.forgeEventHandlers = {};
+        this.zffuEventHandlers = {};
+        this.dynamicEvents = new Set();
     }
 }
 
