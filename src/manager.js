@@ -7,6 +7,8 @@
 // By Zffu - https://github.com/PotatoLoader
 // The Core File of the Potato Loader's Feature Manager System (WIP).
 
+import { registerForge, unregisterForge } from "./utils/forge";
+
 class FeatureManager {
     constructor() {
         // Context Properties
@@ -133,6 +135,61 @@ class FeatureManager {
         return this.customEvents[id];
     }
 
+    handleForge(event, func, priority, ctx) {
+        let id = this.lastForgeTrackedEventId++;
+
+        this.forgeEvents[id] = {
+            func: func,
+            ctx: ctx,
+            trigger: registerForge(event, priority, (...args) => {
+                try {
+                    if(ctx.enabled) {
+                        func.call(ctx, ...(args || []));
+                    }
+                } catch(e) {
+                    ChatLib.chat(this.prefix + "§cError while handling forge event id " + id + ": " + e)
+                }
+            })
+        }
+
+        return this.forgeEvents[id];
+    }
+
+    unregisterForgeHandler(event) {
+        if(!this.forgeEvents[event.id]) return
+        unregisterForge(this.forgeEvents[event.id].trigger)
+        delete this.forgeEvents[event.id];
+    }
+
+    unregisterCustomHandler(event) {
+        event.trigger.unregister();
+        delete this.customEvents[event.id];
+    }
+
+    unregisterEventHandler(event) {
+        if(!this.events[event.event]) return;
+
+        this.events[event.event] = this.events[event.event].filter((e) => {
+            return e.id !== event.id
+        })
+
+        if(this.eventObjects[event.event].length === 0) {
+            this.stopCatchingEvent(event);
+            delete this.events[event.event];
+        }
+    }
+
+    unregisterZffuHandler(event) {
+        if(!this.zffuEventHandlers[event.event]) return;
+
+        this.zffuEventHandlers[event.event] = this.zffuEventHandlers[event.event].filter((e) => {
+            return e.id !== event.id
+        })
+
+        if(this.zffuEventHandlers[event.event].length === 0) {
+            delete this.events[event.event];
+        }
+    }
 
     // Event Catching Functions
     startCatchingEvent(event) {
@@ -141,6 +198,14 @@ class FeatureManager {
         this.eventObjects[event] = register(event, (...args) => {
             this.triggerEvent(event, args);
         })
+    }
+
+    stopCatchingEvent(event) {
+        if (!this.eventObjects[event]) return
+
+        this.eventObjects[event].unregister()
+        delete this.eventObjects[event]
+        delete this.events[event]
     }
 
     registerFeature(feature) {
