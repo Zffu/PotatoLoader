@@ -23,7 +23,6 @@ function loadFile(path) {
     // Optimize by just returning the file if its already been loaded by CTRequire.
     if(loadedFiles.includes(path)) return require(path);
     loadedFiles.push(path);
-    ChatLib.chat(JSON.stringify(CTRequire(path)))
     return CTRequire(path);
 }
 

@@ -216,7 +216,7 @@ class FeatureManager {
     loadFeature(featureId) {
         if(this.features[featureId]) return;
         try {
-            let loaded = loadFile(this.moduleId + "/src/features/" + featureId + "/index.js")
+            let loaded = loadFile("../features/" + featureId + "/index.js")
 
             this.features[featureId] = loaded;
 
