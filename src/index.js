@@ -5,83 +5,229 @@
 //| |    | |__| | | |/ ____ \| | | |__| | | |___| |__| / ____ \| |__| | |____| | \ \ 
 //|_|     \____/  |_/_/    \_\_|  \____/  |______\____/_/    \_\_____/|______|_|  \_\                                                                          
 // By Zffu - https://github.com/PotatoLoader
-// The Core File of the Potato Manager's Feature Loading System.
+// The Core File of the Potato Loader's Feature Manager System (WIP).
 
-// Import stuff to dynamically load the files trough chattriggers.
-const JSLoader = Java.type("com.chattriggers.ctjs.engine.langs.js.JSLoader")
-const UrlModuleSourceProvider = Java.type("org.mozilla.javascript.commonjs.module.provider.UrlModuleSourceProvider")
-const UrlModuleSourceProviderInstance = new UrlModuleSourceProvider(null, null)
-const StrongCachingModuleScriptProviderClass = Java.type("org.mozilla.javascript.commonjs.module.provider.StrongCachingModuleScriptProvider")
-let StrongCachingModuleScriptProvider = new StrongCachingModuleScriptProviderClass(UrlModuleSourceProviderInstance)
-let CTRequire = new JSLoader.CTRequire(StrongCachingModuleScriptProvider)
+import { registerForge, unregisterForge } from "./utils/forge";
+import {loadFile} from "./loader"
 const File = Java.type("java.io.File")
-import {Feature} from "./feature"
 
+class FeatureManager {
+    constructor() {
+        // Context Properties
+        this.parent = undefined;
+        this.moduleId = "potato";
+        this.enabled = true;
 
+        // Visual Properties
+        this.prefix = "§8[§6Potato§8] "
 
-// The core Potato's loading class.
-class PotatoLoader {
-    constructor(moduleId) {
-        this.moduleId = moduleId;
-        this.loadedFiles = [];
-        this.prefix = "§8[§6Potato§8] ";
-        this.folder = new File("./config/ChatTriggers/modules/" + this.moduleId + "/src/features")
+        // Feature Properties
+        this.features = {};
+        this.manifests = {};
+
+        // Event Handling Properties
+        this.events = {};
+        this.eventObjects = {};
+        this.zffuEventHandlers = {};
+        this.customEvents = {};
+        this.forgeEvents = {};
+        this.lastTrackedEventId = 0;
+        this.lastChatTrackedEventId = 0;
+        this.lastForgeTrackedEventId = 0;
+        this.lastZffuTrackedEventId = 0;
+
+        // Command Properties
+        this.commandFunctions = {};
+
+        // State Properties
+        this.finishedLoading = false;
     }
 
-    loadFile(path) {
-        // Optimize by just returning the file if its already been loaded by CTRequire.
-        if(this.loadedFiles.includes(path)) return require(path);
-        this.loadedFiles.push(path);
-        return CTRequire(path);
+    getId() {
+        return "FeatureManager";
     }
 
-    loadFeatures() {
-        let features = [];
-        let dirs = this.folder.list();
-     
-        for(let i = 0; i < dirs.length; i++) {
-            let pathName = dirs[i];
-            if(pathName.includes(".")) return;
+    // Event Listening / Event Handler Registration Functions
 
-            try {
-                let data = JSON.parse(FileLib.read(this.moduleId + "/src/features/" + pathName + "/", "manifest.json"));
-                if(data == null) {
-                    return feature;
-                }
-                data.id = pathName;
-                let feature = this.loadFeature("../features/" + data.id + "/", data);
-    
-                features.push(feature);
-            } catch(e) {
-                ChatLib.chat(this.prefix + "§cCould not load features! " + e);
-            }
+    handleEvent(event, func, ctx) {
+        if(!this.events[event]) {
+            this.events[event] = [];
+            this.startCatchingEvent(event);
         }
-        return features;
-    }
-    loadFeature(dir, manifest) {
-        if(manifest["name"] == undefined || manifest["description"] == undefined || manifest["id"] == undefined || manifest["load"] == undefined || manifest["load"].length == 0) {
-            ChatLib.chat(this.prefix + "§cCould not load feature " + moduleId + ": Missing Manifest Properties")
-            return;
+
+        let theEvent = {
+            func: func,
+            ctx: ctx,
+            id: this.lastTrackedEventId++,
+            event: event
         }
         
-        var files = [];
-    
-        manifest["load"].forEach(file => {
-            files.push(dir + file);
-        })
-    
-        var feature = new Feature(manifest["name"], manifest["id"], manifest["description"], files);
-    
-        if(files.length > 0) {
-            files.forEach(file => {
-                this.loadFile(file);
+        this.events[event].push(theEvent);
+        return theEvent;
+    }
+
+    handleZffuEvent(event, func, ctx) {
+        if(!this.zffuEventHandlers[event]) {
+            this.zffuEventHandlers[event] = [];
+        }
+
+        let theEvent = {
+            func: func,
+            ctx: ctx,
+            id: this.lastZffuTrackedEventId++,
+            event: event
+        }
+
+        this.zffuEventHandlers[event].push(theEvent);
+        return theEvent;
+    }
+
+    handleChat(criteria, func, ctx) {
+        let e = this.handleCustom("chat", func, ctx);
+        e.trigger.setChatCriteria(criteria);
+        return e;
+    }
+
+    handleSoundPlay(criteria, func, ctx) {
+        let e = this.handleCustom("soundPlay", func, ctx);
+        e.trigger.setCriteria(criteria);
+        return e;
+    }
+
+    handleActionBar(criteria, func, ctx) {
+        let e = this.handleCustom("actionBar", func, ctx);
+        e.trigger.setChatCriteria(criteria);
+        return e;
+    }
+
+    handleCommand(commandName, func, ctx, completions) {
+        let e = this.handleCustom("command", func, ctx);
+        if(completions) e.trigger.setTabCompletions(completions);
+        e.trigger.setName(commandName, true);
+        return e;
+    }
+
+    handleStep(isFps, interval, func, ctx) {
+        let e = this.handleCustom("step", func, ctx);
+        e.trigger[isFps ? "setFps" : "setDelay"](interval);
+        return e;
+    }
+
+
+    handleCustom(type, func, ctx) {
+        let id = this.lastChatTrackedEventId++;
+
+        if(!func) throw new Error("Function cannot be null!");
+
+        this.customEvents[id] = {
+            func,
+            ctx,
+            trigger: register(type, (...args) => {
+                try {
+                    if(this.customEvents[id]?.eventT && !this.customEvents[id].eventT.enabled) return;
+
+                    if(ctx.enabled) {
+                        this.customEvents[id].func.call(ctx, ...(args || []))
+                    }
+                } catch(e) {
+                    ChatLib.chat(this.prefix + "§cError while handling custom event id " + id + ": " + e)
+                }
             })
         }
-    
-        return module;
+
+        return this.customEvents[id];
+    }
+
+    handleForge(event, func, priority, ctx) {
+        let id = this.lastForgeTrackedEventId++;
+
+        this.forgeEvents[id] = {
+            func: func,
+            ctx: ctx,
+            trigger: registerForge(event, priority, (...args) => {
+                try {
+                    if(ctx.enabled) {
+                        func.call(ctx, ...(args || []));
+                    }
+                } catch(e) {
+                    ChatLib.chat(this.prefix + "§cError while handling forge event id " + id + ": " + e)
+                }
+            })
+        }
+
+        return this.forgeEvents[id];
+    }
+
+    unregisterForgeHandler(event) {
+        if(!this.forgeEvents[event.id]) return
+        unregisterForge(this.forgeEvents[event.id].trigger)
+        delete this.forgeEvents[event.id];
+    }
+
+    unregisterCustomHandler(event) {
+        event.trigger.unregister();
+        delete this.customEvents[event.id];
+    }
+
+    unregisterEventHandler(event) {
+        if(!this.events[event.event]) return;
+
+        this.events[event.event] = this.events[event.event].filter((e) => {
+            return e.id !== event.id
+        })
+
+        if(this.eventObjects[event.event].length === 0) {
+            this.stopCatchingEvent(event);
+            delete this.events[event.event];
+        }
+    }
+
+    unregisterZffuHandler(event) {
+        if(!this.zffuEventHandlers[event.event]) return;
+
+        this.zffuEventHandlers[event.event] = this.zffuEventHandlers[event.event].filter((e) => {
+            return e.id !== event.id
+        })
+
+        if(this.zffuEventHandlers[event.event].length === 0) {
+            delete this.events[event.event];
+        }
+    }
+
+    // Event Catching Functions
+    startCatchingEvent(event) {
+        if (this.eventObjects[event]) return;
+
+        this.eventObjects[event] = register(event, (...args) => {
+            this.triggerEvent(event, args);
+        })
+    }
+
+    stopCatchingEvent(event) {
+        if (!this.eventObjects[event]) return
+
+        this.eventObjects[event].unregister()
+        delete this.eventObjects[event]
+        delete this.events[event]
+    }
+
+    // Feature Loading
+
+    loadFeature(featureId) {
+        if(this.features[featureId]) return;
+        try {
+            let loaded = loadFile(this.moduleId + "/src/features/" + featureId + "/index.js")
+
+            this.features[featureId] = loaded;
+
+            loaded.class.setId(featureId);
+            loaded.class.enableFeature(this);
+        } catch(e) {
+            ChatLib.chat(this.prefix + "§cError while loading feature id " + featureId + ": " + e)
+        }
     }
 }
 
 module.exports = {
-    PotatoLoader
+    FeatureManager
 }
