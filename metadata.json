@@ -2,6 +2,7 @@
     "name": "Potato Loader",
     "description": "A WIP Module/Feature loader for Chattriggers modules.",
     "authors": "Zffu",
-    "version": "0.0.1-dev",
+    "version": "0.0.1-pre1",
+    "versionId": 1,
     "entry": "src/index.js"
 }
